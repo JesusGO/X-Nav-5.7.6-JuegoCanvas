@@ -2,7 +2,7 @@
 // http://www.lostdecadegames.com/how-to-make-a-simple-html5-canvas-game/
 // Slight modifications by Gregorio Robles <grex@gsyc.urjc.es>
 // to meet the criteria of a canvas class for DAT @ Univ. Rey Juan Carlos
-
+localStorage.setItem("lvl", 0);
 // Create the canvas
 var canvas = document.createElement("canvas");
 var ctx = canvas.getContext("2d");
@@ -26,6 +26,14 @@ heroImage.onload = function () {
 };
 heroImage.src = "images/hero.png";
 
+//Stone image
+var stoneReady=false;
+var stoneImage=new Image();
+stoneImage.onload=function(){
+	stoneReady=true;
+};
+stoneImage.src="images/stone.png";
+
 // princess image
 var princessReady = false;
 var princessImage = new Image();
@@ -40,7 +48,7 @@ var hero = {
 };
 var princess = {};
 var princessesCaught = 0;
-
+var stone={};
 // Handle keyboard controls
 var keysDown = {};
 
@@ -54,27 +62,131 @@ addEventListener("keyup", function (e) {
 
 // Reset the game when the player catches a princess
 var reset = function () {
+	var elements=[];
 	hero.x = canvas.width / 2;
 	hero.y = canvas.height / 2;
 
 	// Throw the princess somewhere on the screen randomly
 	princess.x = 32 + (Math.random() * (canvas.width - 64));
 	princess.y = 32 + (Math.random() * (canvas.height - 64));
+	elements.push([hero.x,hero.y,32]);
+	stones=[];
+	var numstones;
+
+	if (localStorage.getItem("lvl") > 5){
+		numstones=4;
+	}else if(localStorage.getItem("lvl") > 3){
+		numstones=3;
+	}else{
+		numstones=2;
+	}
+
+
+
+	for (var i = 0; i < numstones; i++) {
+		stone.x = putElementX(elements,35);
+		stone.y = putElementY(elements,35);
+		elements.push([stone.x,stone.y,35]);
+		stones.push( [stone.x,stone.y] );
+	}
 };
+
+function putElementX(elements,size){
+	var posX=Math.round((Math.random() * (canvas.width  - 64)));
+	return posX;
+}
+function putElementY(elements,size){
+	var posY=Math.round((Math.random() * (canvas.height - 64)));
+	return posY;
+}
+
+
+function checkRight() {
+	for (var i = 0; i < stones.length; i++) {
+	  if((canvas.width<=(Math.round(hero.x)+60))){
+	    right=false;
+			break;
+	  }else if ((((Math.round(hero.x)+35)>stones[i][0])&&(Math.round(hero.x)<(stones[i][0]+25)))
+		&&
+		(((Math.round(hero.y)+32)>=stones[i][1] ) && ( Math.round(hero.y)<=(stones[i][1]+30) ))) {
+	    right=false;
+			break;
+	  }else{
+	    right=true;
+	  }
+	}
+  return right;
+}
+function checkLeft(){
+	for (var i = 0; i < stones.length; i++) {
+	  if ( 30>=Math.round(hero.x) ){
+	    left=false;
+			break;
+	  }else if ( ((Math.round(hero.x)<(stones[i][0]+35))&&((Math.round(hero.x)+25)>stones[i][0]))
+		&&
+		(((Math.round(hero.y)+32)>stones[i][1])&&(Math.round(hero.y)<(stones[i][1]+30)))    ) {
+	    left=false;
+			break;
+	  }else{
+	    left=true;
+	  }
+	}
+  return left;
+}
+function checkUp(){
+	var up;
+	for (var i = 0; i < stones.length; i++) {
+		if(30>=Math.round(hero.y)){
+			up=false;
+			break;
+		}else if( ((Math.round(hero.y)<(stones[i][1]+35))&&((Math.round(hero.y)+25)>stones[i][1]))
+		&&
+		((Math.round(hero.x)+32)>stones[i][0])&&( Math.round(hero.x)<(stones[i][0]+30)   )        ) {
+			up=false;
+			break;
+		}else {
+			up=true;
+		}
+	}
+	return up;
+}
+function checkDown(){
+	for (var i = 0; i < stones.length; i++) {
+		if((canvas.height<=(Math.round(hero.y)+65) )){
+			down=false;
+			break;
+		}else if((((Math.round(hero.y)+35)>stones[i][1])&&(Math.round(hero.y)<(stones[i][1]+25)))&&((Math.round(hero.x)+32)>stones[i][0])&&( Math.round(hero.x)<(stones[i][0]+30))){
+			down=false;
+			break;
+		}else {
+			down=true;
+		}
+
+	}
+	return down;
+}
 
 // Update game objects
 var update = function (modifier) {
 	if (38 in keysDown) { // Player holding up
-		hero.y -= hero.speed * modifier;
+		if(checkUp()){
+			hero.y -= hero.speed * modifier;
+		} // Player holding up
 	}
 	if (40 in keysDown) { // Player holding down
-		hero.y += hero.speed * modifier;
+		if(checkDown()){
+			hero.y += hero.speed * modifier;
+		} // Player holding down
 	}
 	if (37 in keysDown) { // Player holding left
-		hero.x -= hero.speed * modifier;
+		if (checkLeft()) {
+			hero.x -= hero.speed * modifier;
+		} // Player holding left
 	}
 	if (39 in keysDown) { // Player holding right
-		hero.x += hero.speed * modifier;
+		if (checkRight()) {
+			hero.x += hero.speed * modifier;
+		} // Player holding right
 	}
 
 	// Are they touching?
@@ -101,6 +213,12 @@ var render = function () {
 
 	if (princessReady) {
 		ctx.drawImage(princessImage, princess.x, princess.y);
+	}
+	if (stoneReady) {
+    //ctx.drawImage(stoneImage, stone.x, stone.y);
+		for (var i = 0; i < stones.length; i++) {
+			ctx.drawImage(stoneImage,stones[i][0], stones[i][1]);
+		}
 	}
 
 	// Score
